@@ -120,11 +120,21 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // CORS headers
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+    // CORS headers - must echo specific origin when credentials (CF Access cookies) are involved
+    const origin = request.headers.get('Origin') || '';
+    const allowedOrigins = [
+      'https://relay.admin.divine.video',
+      'https://divine-relay-admin.pages.dev',
+    ];
+    const isAllowedOrigin = allowedOrigins.includes(origin) ||
+      origin.endsWith('.divine-relay-admin.pages.dev') ||
+      origin.startsWith('http://localhost:');
+
+    const corsHeaders: Record<string, string> = {
+      'Access-Control-Allow-Origin': isAllowedOrigin ? origin : allowedOrigins[0],
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
     };
 
     if (request.method === 'OPTIONS') {
