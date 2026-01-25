@@ -37,6 +37,11 @@ max_batch_size = 25
 max_batch_timeout = 30
 max_retries = 3
 
+# Migration to clean up orphaned Durable Objects from previous deployment
+[[migrations]]
+tag = "v2"
+deleted_classes = ["JobCoordinator"]
+
 # Secrets (set via wrangler secret put):
 # - REALITY_DEFENDER_API_KEY
 # - HIVE_API_KEY
