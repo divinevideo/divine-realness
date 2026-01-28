@@ -1343,6 +1343,15 @@ function getDashboardHtml(): string {
             transition: all 0.3s ease;
         }
         .job-card:hover { border-color: rgba(212,175,55,0.3); }
+        .job-card.highlighted {
+            border-color: #d4af37;
+            box-shadow: 0 0 30px rgba(212,175,55,0.3);
+            animation: highlight-pulse 2s ease-out;
+        }
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 40px rgba(212,175,55,0.5); }
+            100% { box-shadow: 0 0 30px rgba(212,175,55,0.3); }
+        }
         .job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .job-id { font-family: 'SF Mono', Monaco, monospace; color: #888; font-size: 0.8rem; display: flex; align-items: center; gap: 10px; }
         .job-id-text { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1927,7 +1936,7 @@ function getDashboardHtml(): string {
                 return;
             }
             el.innerHTML = jobs.map(job => \`
-                <div class="job-card">
+                <div class="job-card" data-event-id="\${job.event_id}">
                     <div class="job-header">
                         <span class="job-id">
                             <span class="job-id-text" title="\${job.event_id}">\${job.event_id}</span>
@@ -2190,7 +2199,24 @@ function getDashboardHtml(): string {
             }
         }
 
-        loadJobs();
+        // Check for deep link parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetEventId = urlParams.get('event');
+
+        async function initPage() {
+            await loadJobs();
+
+            // If we have a target event, scroll to and highlight it
+            if (targetEventId) {
+                const card = document.querySelector(\`[data-event-id="\${targetEventId}"]\`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.classList.add('highlighted');
+                }
+            }
+        }
+
+        initPage();
         setInterval(() => loadJobs(currentPage), 5000);
     </script>
 
