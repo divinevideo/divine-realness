@@ -120,15 +120,42 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // CORS headers
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
+    // CORS: echo the request origin when it's on the allowlist (required for credentials)
+    const origin = request.headers.get('Origin') || '';
+    const allowedOrigins = [
+      'https://relay.admin.divine.video',
+      'https://divine-relay-admin.pages.dev',
+    ];
+    const isAllowedOrigin = allowedOrigins.includes(origin) ||
+      origin.endsWith('.divine-relay-admin.pages.dev') ||
+      (origin.startsWith('http://localhost:') && origin.length < 30);
+
+    // Only set CORS headers for allowed origins — omit entirely for unknown origins
+    const corsHeaders: Record<string, string> = isAllowedOrigin
+      ? {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Credentials': 'true',
+          'Vary': 'Origin',
+        }
+      : { 'Vary': 'Origin' };
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // Helper to apply CORS headers to any response from handlers
+    function withCors(response: Response): Response {
+      const newHeaders = new Headers(response.headers);
+      for (const [key, value] of Object.entries(corsHeaders)) {
+        newHeaders.set(key, value);
+      }
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
     }
 
     try {
@@ -138,53 +165,53 @@ export default {
       }
 
       if (path === '/health') {
-        return new Response('OK', { headers: corsHeaders });
+        return withCors(new Response('OK'));
       }
 
       if (path === '/analyze' && request.method === 'POST') {
-        return handleAnalyze(request, env, ctx);
+        return withCors(await handleAnalyze(request, env, ctx));
       }
 
       if (path === '/api/analyze' && request.method === 'POST') {
-        return handleApiAnalyze(request, env, ctx);
+        return withCors(await handleApiAnalyze(request, env, ctx));
       }
 
       if (path === '/api/jobs' && request.method === 'GET') {
-        return handleListJobs(env, request);
+        return withCors(await handleListJobs(env, request));
       }
 
       if (path.startsWith('/api/jobs/') && request.method === 'GET') {
         const jobId = path.replace('/api/jobs/', '');
-        return handleGetJob(jobId, env);
+        return withCors(await handleGetJob(jobId, env));
       }
 
       if (path.startsWith('/api/jobs/') && request.method === 'DELETE') {
         const jobId = path.replace('/api/jobs/', '');
-        return handleDeleteJob(jobId, env);
+        return withCors(await handleDeleteJob(jobId, env));
       }
 
       // Moderation action endpoint: POST /api/moderate/:jobId
       if (path.startsWith('/api/moderate/') && request.method === 'POST') {
         const jobId = path.replace('/api/moderate/', '');
-        return handleModerateJob(jobId, request, env);
+        return withCors(await handleModerateJob(jobId, request, env));
       }
 
       if (path.startsWith('/webhook/') && request.method === 'POST') {
         const provider = path.replace('/webhook/', '');
-        return handleWebhook(provider, request, env);
+        return withCors(await handleWebhook(provider, request, env));
       }
 
       if (path === '/api/poll' && request.method === 'POST') {
-        return handlePollResults(request, env, ctx);
+        return withCors(await handlePollResults(request, env, ctx));
       }
 
-      return new Response('Not Found', { status: 404, headers: corsHeaders });
+      return withCors(new Response('Not Found', { status: 404 }));
     } catch (error) {
       console.error('Error:', error);
-      return new Response(JSON.stringify({ error: String(error) }), {
+      return withCors(new Response(JSON.stringify({ error: String(error) }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { 'Content-Type': 'application/json' },
+      }));
     }
   },
 
@@ -1333,6 +1360,15 @@ function getDashboardHtml(): string {
             transition: all 0.3s ease;
         }
         .job-card:hover { border-color: rgba(212,175,55,0.3); }
+        .job-card.highlighted {
+            border-color: #d4af37;
+            box-shadow: 0 0 30px rgba(212,175,55,0.3);
+            animation: highlight-pulse 2s ease-out;
+        }
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 40px rgba(212,175,55,0.5); }
+            100% { box-shadow: 0 0 30px rgba(212,175,55,0.3); }
+        }
         .job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .job-id { font-family: 'SF Mono', Monaco, monospace; color: #888; font-size: 0.8rem; display: flex; align-items: center; gap: 10px; }
         .job-id-text { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1917,7 +1953,7 @@ function getDashboardHtml(): string {
                 return;
             }
             el.innerHTML = jobs.map(job => \`
-                <div class="job-card">
+                <div class="job-card" data-event-id="\${job.event_id}">
                     <div class="job-header">
                         <span class="job-id">
                             <span class="job-id-text" title="\${job.event_id}">\${job.event_id}</span>
@@ -2180,7 +2216,25 @@ function getDashboardHtml(): string {
             }
         }
 
-        loadJobs();
+        // Check for deep link parameter (sanitize to hex chars only — event IDs are 64-char hex)
+        const urlParams = new URLSearchParams(window.location.search);
+        const rawEventParam = urlParams.get('event') || '';
+        const targetEventId = /^[0-9a-fA-F]{1,64}$/.test(rawEventParam) ? rawEventParam : null;
+
+        async function initPage() {
+            await loadJobs();
+
+            // If we have a target event, scroll to and highlight it
+            if (targetEventId) {
+                const card = document.querySelector('[data-event-id="' + targetEventId + '"]');
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.classList.add('highlighted');
+                }
+            }
+        }
+
+        initPage();
         setInterval(() => loadJobs(currentPage), 5000);
     </script>
 
