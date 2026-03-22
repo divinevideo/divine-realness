@@ -1674,9 +1674,33 @@ function getDashboardHtml(): string {
         .moderation-status.pending { color: #d4af37; }
         .moderation-status.success { color: #81c784; }
         .moderation-status.error { color: #e57373; }
+        .admin-bar {
+            background: #12121a; border-bottom: 1px solid #2a2a3a;
+            padding: 0 16px; display: flex; align-items: center;
+            height: 36px; font-size: 12px; gap: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            overflow-x: auto; white-space: nowrap;
+        }
+        .admin-bar a { color: #8888aa; text-decoration: none; padding: 4px 8px; border-radius: 4px; transition: all 0.15s; }
+        .admin-bar a:hover { color: #e0e0f0; background: #1a1a26; }
+        .admin-bar a.current { color: #7c6ff7; background: #1a1a26; }
+        .admin-bar .sep { color: #2a2a3a; margin: 0 2px; }
     </style>
 </head>
 <body>
+    <div class="admin-bar">
+        <a href="https://admin.divine.video" title="Dashboard">&#9670; Admin</a>
+        <span class="sep">|</span>
+        <a href="https://moderation.admin.divine.video/admin">Moderation</a>
+        <a href="https://review.admin.divine.video/admin">Review</a>
+        <a href="https://faro.admin.divine.video">Reports</a>
+        <a href="https://realness.admin.divine.video" class="current">Realness</a>
+        <a href="https://names.admin.divine.video">Names</a>
+        <a href="https://relay.admin.divine.video">Relay</a>
+        <a href="https://discovery.admin.divine.video">Discovery</a>
+        <span class="sep">|</span>
+        <a href="https://rabblelabs.zendesk.com/">Zendesk</a>
+    </div>
     <div class="container">
         <header>
             <h1>Realness</h1>
