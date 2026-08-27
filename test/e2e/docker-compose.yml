@@ -1,0 +1,16 @@
+services:
+  gate-e2e:
+    build: .
+    image: divine-realness-gate-e2e
+    volumes:
+      # Mount only the Worker inputs the harness needs. Keeping the rest of the
+      # repository outside the container avoids exposing local configuration.
+      - ../../src:/repo/src:ro
+      - ../../migrations:/repo/migrations:ro
+      # Mounted live so a run always uses the current harness rather than a
+      # baked image layer.
+      - ./test:/e2e/test:ro
+      - ./vitest.config.mts:/e2e/vitest.config.mts:ro
+    # No egress. Nothing here can reach a real provider API, so any
+    # "analysis was attempted" signal must come from the Worker's own code.
+    network_mode: none

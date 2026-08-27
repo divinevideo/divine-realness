@@ -2,3 +2,7 @@ node_modules/
 .wrangler/
 .dev.vars
 *.log
+
+# e2e harness build artifacts
+test/e2e/node_modules/
+test/e2e/worker/
