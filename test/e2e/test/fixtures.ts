@@ -49,7 +49,7 @@ export function videoEvent(opts: {
   if (opts.extraTags) tags.push(...opts.extraTags);
 
   return {
-    id: `e2e${String(counter).padStart(60, "0")}`,
+    id: `e2e${String(counter).padStart(61, "0")}`,
     pubkey: "a".repeat(64),
     created_at: 1735689600,
     kind: opts.kind ?? 22,
