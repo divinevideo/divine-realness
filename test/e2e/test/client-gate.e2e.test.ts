@@ -1,4 +1,4 @@
-import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
+import { env } from "cloudflare:test";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import worker from "../worker/src/index";
 import {
@@ -18,10 +18,10 @@ beforeEach(() => {
   fetches = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: any) => {
-      const url = typeof input === "string" ? input : input?.url ?? String(input);
+    vi.fn(async (input: unknown) => {
+      const url = input instanceof Request ? input.url : String(input);
       fetches.push(url);
-      // Minimal body so submitToRealityDefender can blob() it before failing.
+      // Fail the download after recording that analysis reached the provider path.
       return new Response("x", { status: 500, statusText: "stubbed" });
     }),
   );
@@ -32,10 +32,10 @@ afterEach(() => {
 });
 
 /**
- * Drives the REAL exported queue() handler, exactly as Cloudflare would.
+ * Drives the real exported queue() handler inside the Workers runtime.
  * Returns whether the worker treated the event as needing analysis.
  */
-async function runQueue(event: any) {
+async function runQueue(event: ReturnType<typeof videoEvent>) {
   const acks: string[] = [];
   const batch = {
     queue: "video-detection-queue",
@@ -51,13 +51,12 @@ async function runQueue(event: any) {
     ],
     ackAll: () => {},
     retryAll: () => {},
-  } as any;
+  } as unknown as Parameters<typeof worker.queue>[0];
 
-  const ctx = createExecutionContext();
-  await worker.queue(batch, env as any, ctx);
-  await waitOnExecutionContext(ctx);
+  await worker.queue(batch, env as unknown as Parameters<typeof worker.queue>[1]);
 
-  const row = await env.DB.prepare("SELECT event_id FROM jobs WHERE event_id = ?")
+  const testEnv = env as unknown as { DB: D1Database };
+  const row = await testEnv.DB.prepare("SELECT event_id FROM jobs WHERE event_id = ?")
     .bind(event.id)
     .first();
 
@@ -86,6 +85,7 @@ describe("divine-realness trusted-client gate, end to end in workerd", () => {
   });
 
   it("BUG: divine-mobile event on an untrusted host IS analyzed (gate misses)", async () => {
+    // TODO(#11): Rewrite this expectation when the trusted-client gate is fixed.
     const r = await runQueue(
       videoEvent({ clientTag: MOBILE_CLIENT_TAG, videoUrl: UNTRUSTED_VIDEO_URL }),
     );
@@ -94,6 +94,7 @@ describe("divine-realness trusted-client gate, end to end in workerd", () => {
   });
 
   it("BUG: the REAL divine-web video tag ['client','divine-web'] ALSO misses the gate", async () => {
+    // TODO(#11): Rewrite this expectation when the trusted-client gate is fixed.
     const r = await runQueue(
       videoEvent({ clientTag: WEB_VIDEO_CLIENT_TAG, videoUrl: UNTRUSTED_VIDEO_URL }),
     );
@@ -103,7 +104,7 @@ describe("divine-realness trusted-client gate, end to end in workerd", () => {
     expect(r.fetches[0]).toBe(UNTRUSTED_VIDEO_URL);
   });
 
-  it("the hostname-fallback tag is the ONLY shape that trips the gate", async () => {
+  it("the hostname-fallback tag trips the gate", async () => {
     const r = await runQueue(
       videoEvent({ clientTag: WEB_HOSTNAME_CLIENT_TAG, videoUrl: UNTRUSTED_VIDEO_URL }),
     );
@@ -133,6 +134,7 @@ describe("divine-realness trusted-client gate, end to end in workerd", () => {
   });
 
   it("ORDERING: the client gate short-circuits BEFORE the report check", async () => {
+    // TODO(#11): Rewrite this expectation when the trusted-client gate is fixed.
     const r = await runQueue(
       videoEvent({
         clientTag: WEB_HOSTNAME_CLIENT_TAG,

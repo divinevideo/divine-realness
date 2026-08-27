@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "vitest",
+    "test": "npm run test:e2e",
     "test:e2e": "docker compose -f test/e2e/docker-compose.yml run --build --rm gate-e2e"
   },
   "devDependencies": {
