@@ -1,0 +1,14 @@
+{
+  "name": "divine-realness-client-gate-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --reporter=verbose"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.9.14",
+    "@cloudflare/workers-types": "^4.20251011.0",
+    "typescript": "^5.6.0",
+    "vitest": "~3.2.0"
+  }
+}

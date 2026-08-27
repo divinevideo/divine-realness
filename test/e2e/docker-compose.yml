@@ -1,0 +1,15 @@
+services:
+  gate-e2e:
+    build: .
+    image: divine-realness-gate-e2e
+    volumes:
+      # The Worker tree, read-only. The harness copies src/ and migrations/ out
+      # of it at start, so a run can never modify the repo it is testing.
+      - ../..:/repo:ro
+      # Mounted live so a run always uses the current harness rather than a
+      # baked image layer.
+      - ./test:/e2e/test:ro
+      - ./vitest.config.mts:/e2e/vitest.config.mts:ro
+    # No egress. Nothing here can reach a real provider API, so any
+    # "analysis was attempted" signal must come from the Worker's own code.
+    network_mode: none
