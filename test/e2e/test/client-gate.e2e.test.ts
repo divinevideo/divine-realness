@@ -1,4 +1,5 @@
-import { env } from "cloudflare:test";
+import { env } from "cloudflare:workers";
+import { createExecutionContext, createMessageBatch, getQueueResult } from "cloudflare:test";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import worker from "../worker/src/index";
 import {
@@ -36,33 +37,28 @@ afterEach(() => {
  * Returns whether the worker treated the event as needing analysis.
  */
 async function runQueue(event: ReturnType<typeof videoEvent>) {
-  const acks: string[] = [];
-  const batch = {
-    queue: "video-detection-queue",
-    messages: [
-      {
-        id: `msg-${event.id}`,
-        timestamp: new Date(0),
-        attempts: 1,
-        body: { event },
-        ack: () => acks.push("ack"),
-        retry: () => acks.push("retry"),
-      },
-    ],
-    ackAll: () => {},
-    retryAll: () => {},
-  } as unknown as Parameters<typeof worker.queue>[0];
+  const messageId = `msg-${event.id}`;
+  const batch = createMessageBatch("video-detection-queue", [
+    {
+      id: messageId,
+      timestamp: new Date(0),
+      attempts: 1,
+      body: { event },
+    },
+  ]);
+  const ctx = createExecutionContext();
 
-  await worker.queue(batch, env as unknown as Parameters<typeof worker.queue>[1]);
+  await worker.queue(batch, env);
+  const queueResult = await getQueueResult(batch, ctx);
 
-  const testEnv = env as unknown as { DB: D1Database };
-  const row = await testEnv.DB.prepare("SELECT event_id FROM jobs WHERE event_id = ?")
+  const row = await env.DB.prepare("SELECT event_id FROM jobs WHERE event_id = ?")
     .bind(event.id)
     .first();
 
   // Every message must be settled exactly once, and settled by ack - a retry
   // here would mean the handler threw rather than reaching a decision.
-  expect(acks).toEqual(["ack"]);
+  expect(queueResult.explicitAcks).toEqual([messageId]);
+  expect(queueResult.retryMessages).toEqual([]);
 
   return { analyzed: row !== null, fetches: [...fetches] };
 }
