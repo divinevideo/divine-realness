@@ -5,7 +5,7 @@ if [ ! -f /repo/src/index.ts ]; then
   exit 1
 fi
 mkdir -p /e2e/worker/src /e2e/worker/migrations
-cp /repo/src/index.ts /e2e/worker/src/index.ts
+cp -R /repo/src/. /e2e/worker/src/
 cp /repo/migrations/*.sql /e2e/worker/migrations/
 
 # Print the gate under test by pattern rather than by line number, so this

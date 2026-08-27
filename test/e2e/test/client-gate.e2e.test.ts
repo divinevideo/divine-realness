@@ -101,6 +101,7 @@ describe("divine-realness trusted-client gate, end to end in workerd", () => {
   });
 
   it("the hostname-fallback tag trips the gate", async () => {
+    // TODO(#11): Rewrite this expectation when the trusted-client gate is fixed.
     const r = await runQueue(
       videoEvent({ clientTag: WEB_HOSTNAME_CLIENT_TAG, videoUrl: UNTRUSTED_VIDEO_URL }),
     );
@@ -144,16 +145,22 @@ describe("divine-realness trusted-client gate, end to end in workerd", () => {
   });
 
   it("REAL TRAFFIC: mobile event WITHOUT proofmode on media.divine.video IS analyzed", async () => {
-    // The residual 3.1%. media.divine.video is not in trustedHosts, so neither
-    // the client gate nor the host gate catches these.
+    // TODO(#11): Rewrite this expectation when the trusted-client gate is fixed.
+    // This represents the 3.1% residual after proofmode filtering.
+    // media.divine.video is not in trustedHosts, so neither gate catches it.
     const r = await runQueue(
-      videoEvent({ clientTag: MOBILE_CLIENT_TAG, videoUrl: REAL_MOBILE_VIDEO_URL }),
+      videoEvent({
+        clientTag: MOBILE_CLIENT_TAG,
+        videoUrl: REAL_MOBILE_VIDEO_URL,
+        kind: 34236,
+      }),
     );
     expect(r.analyzed).toBe(true);
     expect(r.fetches[0]).toBe(REAL_MOBILE_VIDEO_URL);
   });
 
   it("casing: a hypothetical 'DIVINE.VIDEO' hostname would also miss the gate", async () => {
+    // TODO(#11): Re-evaluate this normalization control when the gate is fixed.
     const r = await runQueue(
       videoEvent({ clientTag: ["client", "DIVINE.VIDEO"], videoUrl: UNTRUSTED_VIDEO_URL }),
     );
