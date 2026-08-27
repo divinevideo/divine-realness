@@ -8,8 +8,8 @@ WORKDIR /e2e
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package.json ./
-RUN npm install --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 COPY vitest.config.mts tsconfig.json ./
 COPY test ./test

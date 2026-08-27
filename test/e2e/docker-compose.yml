@@ -3,9 +3,10 @@ services:
     build: .
     image: divine-realness-gate-e2e
     volumes:
-      # The Worker tree, read-only. The harness copies src/ and migrations/ out
-      # of it at start, so a run can never modify the repo it is testing.
-      - ../..:/repo:ro
+      # Mount only the Worker inputs the harness needs. Keeping the rest of the
+      # repository outside the container avoids exposing local configuration.
+      - ../../src:/repo/src:ro
+      - ../../migrations:/repo/migrations:ro
       # Mounted live so a run always uses the current harness rather than a
       # baked image layer.
       - ./test:/e2e/test:ro

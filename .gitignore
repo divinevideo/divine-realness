@@ -6,4 +6,3 @@ node_modules/
 # e2e harness build artifacts
 test/e2e/node_modules/
 test/e2e/worker/
-test/e2e/package-lock.json

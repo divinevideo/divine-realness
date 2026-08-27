@@ -17,9 +17,10 @@ docker compose -f test/e2e/docker-compose.yml run --build --rm gate-e2e
 
 ## How it establishes what it claims
 
-- **Real source.** The repo is bind-mounted read-only at `/repo`; the entrypoint
-  copies `src/index.ts` and `migrations/` out of it and prints the sha256 plus the
-  gate's own lines before each run. A run cannot modify the tree it is testing.
+- **Real source.** The Worker's `src/` and `migrations/` inputs are bind-mounted
+  read-only at `/repo`; the entrypoint copies them into the harness and prints
+  the source sha256 plus the gate's own lines before each run. A run cannot
+  modify the tree it is testing or read unrelated repository configuration.
 - **No egress.** The container runs with `network_mode: none`, so no provider API
   is reachable and any "analysis was attempted" signal must originate in the
   Worker's own code.

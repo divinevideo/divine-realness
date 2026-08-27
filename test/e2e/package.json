@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run --reporter=verbose"
+    "test": "npm run typecheck && vitest run --reporter=verbose",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.9.14",
