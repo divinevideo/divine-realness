@@ -2,6 +2,9 @@ node_modules/
 .wrangler/
 .dev.vars
 *.log
+dist/
+release.json
+.wrangler-deploy.jsonl
 
 # e2e harness build artifacts
 test/e2e/node_modules/
