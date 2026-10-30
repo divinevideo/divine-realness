@@ -27,7 +27,8 @@ function fixture() {
       { type: 'queue', name: 'ACTION_QUEUE', queue_name: 'actions' },
     ] },
     'queues?per_page=100': [{ queue_id: 'q1', queue_name: 'events' }, { queue_id: 'q2', queue_name: 'actions' }],
-    'queues/q1/consumers': [{ script: 'test-worker', type: 'worker' }],
+    // List Queue Consumers returns script_name, unlike the embedded queue metadata.
+    'queues/q1/consumers': [{ script_name: 'test-worker', type: 'worker' }],
     '/zones?name=example.test': [{ id: 'zone' }],
     '/zones/zone/workers/routes': [{ pattern: 'admin.example.test/*', script: 'test-worker' }],
     [`workers/scripts/test-worker/versions/${id}`]: {
@@ -53,7 +54,7 @@ function fixture() {
   return { deps, calls, records, replies };
 }
 
-test('deploys only after preflight, then verifies health, source, and active 100% version', async () => {
+test('accepts the queue consumer API response, then verifies health, source, and active 100% version', async () => {
   const f = fixture();
   await release(valid, target, f.deps);
   assert.equal(f.records[0].result, 'success');
@@ -98,7 +99,9 @@ for (const [name, path, reply] of [
   ['different environment', 'workers/services/test-worker', { default_environment: { environment: 'staging', script: { migration_tag: 'v2' } } }],
   ['missing DB/secret/producer', 'workers/scripts/test-worker/settings', { bindings: [] }],
   ['missing queues', 'queues?per_page=100', []],
-  ['another queue consumer', 'queues/q1/consumers', [{ script: 'another-worker', type: 'worker' }]],
+  ['another queue consumer', 'queues/q1/consumers', [{ script_name: 'another-worker', type: 'worker' }]],
+  ['missing queue consumer name', 'queues/q1/consumers', [{ type: 'worker' }]],
+  ['non-Worker queue consumer', 'queues/q1/consumers', [{ script_name: 'test-worker', type: 'http_pull' }]],
   ['missing zone', '/zones?name=example.test', []],
   ['another serving route', '/zones/zone/workers/routes', [{ pattern: 'admin.example.test/*', script: 'another-worker' }]],
 ] as const) {
