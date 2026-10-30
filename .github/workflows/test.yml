@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 2
     permissions:
       contents: read
-      deployments: read
+      actions: read
     steps:
       # Referencing an absent environment in a job would create it without protections.
       - name: Require the existing production environment

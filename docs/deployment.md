@@ -31,7 +31,7 @@ traffic, Access policies, credentials, secrets, or data.
    setup and its approval policy belong to the maintainers, not this workflow.
    A separate read-only job requires this environment to exist before the
    deploy job can reference it (and thereby accidentally create it). That job
-   adds only `deployments: read` to its token permissions; failure to read the
+   adds only `actions: read` to its token permissions; failure to read the
    environment blocks activation.
 3. Supply environment variable `CLOUDFLARE_ACCOUNT_ID` for that existing account,
    and environment secret `CLOUDFLARE_API_TOKEN`. Use a scoped API token, not a
