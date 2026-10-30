@@ -1,10 +1,11 @@
-name: Test
+name: Test and deploy
 
 on:
   pull_request:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,5 +15,80 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.22.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - run: npm test
+      - name: Identify checked bundle
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: printf '%s\n' "$SOURCE_SHA" > dist/source-sha
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: worker-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  production-environment:
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # Referencing an absent environment in a job would create it without protections.
+      - name: Require the existing production environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/divinevideo/divine-realness/environments/production --jq '.name'
+
+  deploy:
+    needs: [test, production-environment]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    # Never cancel an activation midway. A stale queued/replayed run fails its main-SHA guard.
+    concurrency:
+      group: realness-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.22.0'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: worker-${{ github.sha }}
+          path: dist/
+      - name: Deploy and verify existing production Worker
+        run: npm run release:production
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          PRODUCTION_CD_ENABLED: ${{ vars.PRODUCTION_CD_ENABLED }}
+          PRODUCTION_INPUTS_SHA256: ${{ vars.PRODUCTION_INPUTS_SHA256 }}
+      - name: Preserve deployment result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: production-result-${{ github.sha }}-${{ github.run_attempt }}
+          path: release.json
+          if-no-files-found: warn
+          retention-days: 90

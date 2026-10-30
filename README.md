@@ -66,7 +66,8 @@ npm run dev       # run the Worker locally with Wrangler
 npm run deploy    # deploy the Worker through Wrangler
 ```
 
-A `test` script is defined (`vitest`) but no test suite is checked in yet.
+`npm test` runs the release-safety tests and the Docker Compose/workerd trusted-client
+gate suite. `npm run build` packages the Worker without deploying it.
 
 ## Configuration
 
@@ -89,7 +90,12 @@ D1 schema changes go in `migrations/`.
 
 ## Deployment
 
-Deploy with `npm run deploy` (`wrangler deploy`). There is no deploy workflow in CI; the only GitHub Action is a semantic PR-title check. See [AGENTS.md](AGENTS.md) for repository conventions and contribution guardrails.
+The Test and deploy workflow checks pull requests and main commits. Only a checked
+main commit can reach its production job. Production activation requires the
+explicit prerequisites in [the deployment runbook](docs/deployment.md), including
+the existing account, protected environment, and authenticated health check.
+Do not use `npm run deploy` to bypass the production workflow or its checks.
+See [AGENTS.md](AGENTS.md) for repository conventions and contribution guardrails.
 
 ---
 
