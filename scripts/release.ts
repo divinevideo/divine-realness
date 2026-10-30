@@ -91,8 +91,13 @@ export async function release(context: Context, target: Target, deps: Dependenci
     for (const consumer of target.queues.consumers) {
       const queue = queues.find(q => q.queue_name === consumer.queue);
       requireThat(queue, 'Configured consumer queue was not found');
-      const consumers = await deps.cf<{ script_name?: string; type: string }[]>(`queues/${queue.queue_id}/consumers`);
-      requireThat(consumers.some(c => c.type === 'worker' && c.script_name === target.name),
+      const consumers = await deps.cf<{ script_name?: string; script?: string; type: string }[]>(`queues/${queue.queue_id}/consumers`);
+      // The API documents script_name; legacy responses use script. Never choose
+      // between conflicting names: every supplied name must identify this Worker.
+      requireThat(consumers.some(c => c.type === 'worker' &&
+        (c.script_name !== undefined || c.script !== undefined) &&
+        (c.script_name === undefined || c.script_name === target.name) &&
+        (c.script === undefined || c.script === target.name)),
         'Existing queue consumer does not point at this Worker');
     }
     // Zone reads use the same authenticated API, but are not account-relative.

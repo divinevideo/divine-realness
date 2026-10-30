@@ -27,7 +27,7 @@ function fixture() {
       { type: 'queue', name: 'ACTION_QUEUE', queue_name: 'actions' },
     ] },
     'queues?per_page=100': [{ queue_id: 'q1', queue_name: 'events' }, { queue_id: 'q2', queue_name: 'actions' }],
-    // List Queue Consumers returns script_name, unlike the embedded queue metadata.
+    // The documented List Queue Consumers response uses script_name.
     'queues/q1/consumers': [{ script_name: 'test-worker', type: 'worker' }],
     '/zones?name=example.test': [{ id: 'zone' }],
     '/zones/zone/workers/routes': [{ pattern: 'admin.example.test/*', script: 'test-worker' }],
@@ -84,6 +84,20 @@ test('explicit replay on main is allowed', async () => {
   assert.equal(f.records[0].result, 'success');
 });
 
+test('accepts a legacy queue consumer response using script', async () => {
+  const f = fixture();
+  f.replies['queues/q1/consumers'] = [{ script: 'test-worker', type: 'worker' }];
+  await release(valid, target, f.deps);
+  assert.equal(f.records[0].result, 'success');
+});
+
+test('accepts consistent queue consumer names when both fields are supplied', async () => {
+  const f = fixture();
+  f.replies['queues/q1/consumers'] = [{ script_name: 'test-worker', script: 'test-worker', type: 'worker' }];
+  await release(valid, target, f.deps);
+  assert.equal(f.records[0].result, 'success');
+});
+
 for (const when of [1, 2]) {
   test(`refuses stale main at guard ${when} before deploying`, async () => {
     const f = fixture();
@@ -102,6 +116,11 @@ for (const [name, path, reply] of [
   ['another queue consumer', 'queues/q1/consumers', [{ script_name: 'another-worker', type: 'worker' }]],
   ['missing queue consumer name', 'queues/q1/consumers', [{ type: 'worker' }]],
   ['non-Worker queue consumer', 'queues/q1/consumers', [{ script_name: 'test-worker', type: 'http_pull' }]],
+  ['another legacy queue consumer', 'queues/q1/consumers', [{ script: 'another-worker', type: 'worker' }]],
+  ['non-Worker legacy queue consumer', 'queues/q1/consumers', [{ script: 'test-worker', type: 'http_pull' }]],
+  ['conflicting legacy queue consumer name', 'queues/q1/consumers', [{ script_name: 'test-worker', script: 'another-worker', type: 'worker' }]],
+  ['conflicting documented queue consumer name', 'queues/q1/consumers', [{ script_name: 'another-worker', script: 'test-worker', type: 'worker' }]],
+  ['empty documented queue consumer name', 'queues/q1/consumers', [{ script_name: '', script: 'test-worker', type: 'worker' }]],
   ['missing zone', '/zones?name=example.test', []],
   ['another serving route', '/zones/zone/workers/routes', [{ pattern: 'admin.example.test/*', script: 'another-worker' }]],
 ] as const) {
