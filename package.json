@@ -5,11 +5,18 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "npm run test:e2e",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "test": "npm run test:release && npm run test:e2e",
+    "typecheck": "tsc --noEmit && tsc -p scripts/tsconfig.json",
+    "test:release": "npm run typecheck && node --experimental-strip-types --test scripts/release.test.ts",
+    "release:inputs": "node --experimental-strip-types scripts/release.ts inputs",
+    "release:production": "node --experimental-strip-types scripts/release.ts deploy",
     "test:e2e": "docker compose -f test/e2e/docker-compose.yml run --build --rm gate-e2e"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",
+    "@iarna/toml": "2.2.5",
+    "@types/node": "22.10.2",
     "typescript": "^5.0.0",
     "wrangler": "^3.0.0"
   }
