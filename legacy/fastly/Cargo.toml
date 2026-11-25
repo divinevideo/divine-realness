@@ -1,0 +1,25 @@
+# ABOUTME: Cargo manifest for Nostr AI Video Detector Fastly Compute service
+# ABOUTME: Defines dependencies for Fastly SDK, async runtime, and HTTP/JSON handling
+
+[package]
+name = "divine-ai-detector"
+version = "0.1.0"
+edition = "2021"
+authors = ["Divine <dev@divine.video>"]
+description = "Fastly Compute@Edge service for detecting AI-generated videos in Nostr events"
+
+[workspace]
+
+[dependencies]
+fastly = "=0.13.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.21"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = true
