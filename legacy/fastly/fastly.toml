@@ -1,0 +1,92 @@
+# ABOUTME: Fastly Compute@Edge service configuration for AI video detection
+# ABOUTME: Defines service bindings for KV store, secret store, and backend APIs
+
+manifest_version = 3
+name = "divine-ai-detector"
+description = "Nostr AI Video Detector - analyzes videos for AI-generated content"
+authors = ["Divine <dev@divine.video>"]
+language = "rust"
+service_id = "tZQ0vubMGcureuJkSJTCVH"
+
+[scripts]
+build = "cargo build --release --target wasm32-wasip1"
+
+[local_server]
+
+[local_server.backends]
+
+  [local_server.backends.relay_divine_video]
+  url = "https://relay.divine.video"
+
+  [local_server.backends.nostr_rest_gateway]
+  url = "https://cleanly-resolved-tetra.edgecompute.app"
+
+  [local_server.backends.reality_defender]
+  url = "https://api.prd.realitydefender.xyz"
+
+  [local_server.backends.hive_ai]
+  url = "https://api.thehive.ai"
+
+  [local_server.backends.sensity]
+  url = "https://api.sensity.ai"
+
+[local_server.kv_stores]
+
+  [local_server.kv_stores.jobs]
+  file = "kv_store_jobs.json"
+  format = "json"
+
+[local_server.secret_stores]
+
+  [local_server.secret_stores.secrets]
+  file = "secrets.json"
+  format = "json"
+
+[setup]
+
+  [setup.backends]
+
+    [setup.backends.relay_divine_video]
+    address = "relay.divine.video"
+    port = 443
+    ssl_cert_hostname = "relay.divine.video"
+    ssl_sni_hostname = "relay.divine.video"
+    override_host = "relay.divine.video"
+
+    [setup.backends.nostr_rest_gateway]
+    address = "cleanly-resolved-tetra.edgecompute.app"
+    port = 443
+    ssl_cert_hostname = "cleanly-resolved-tetra.edgecompute.app"
+    ssl_sni_hostname = "cleanly-resolved-tetra.edgecompute.app"
+    override_host = "cleanly-resolved-tetra.edgecompute.app"
+
+    [setup.backends.reality_defender]
+    address = "api.prd.realitydefender.xyz"
+    port = 443
+    ssl_cert_hostname = "api.prd.realitydefender.xyz"
+    ssl_sni_hostname = "api.prd.realitydefender.xyz"
+    override_host = "api.prd.realitydefender.xyz"
+
+    [setup.backends.hive_ai]
+    address = "api.thehive.ai"
+    port = 443
+    ssl_cert_hostname = "api.thehive.ai"
+    ssl_sni_hostname = "api.thehive.ai"
+    override_host = "api.thehive.ai"
+
+    [setup.backends.sensity]
+    address = "api.sensity.ai"
+    port = 443
+    ssl_cert_hostname = "api.sensity.ai"
+    ssl_sni_hostname = "api.sensity.ai"
+    override_host = "api.sensity.ai"
+
+  [setup.kv_stores]
+
+    [setup.kv_stores.jobs]
+    name = "nostr-ai-jobs"
+
+  [setup.secret_stores]
+
+    [setup.secret_stores.secrets]
+    name = "nostr-ai-secrets"

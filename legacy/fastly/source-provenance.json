@@ -1,0 +1,14 @@
+{
+  "historical_manifest": "https://github.com/divinevideo/divine-realness/blob/be25fe576ba7df52eff1c1cf3e091b5e1240b5f3/fastly.toml",
+  "recovered_source_set_sha256": "64bf9a16dda04a8f2d26faf46fa57bbb8a65a59c02736e399a957edb53b1a78d",
+  "recovery": "Literal replay of successful original source writes and edits through the existing version53 deployment. No recovered commands were executed.",
+  "limits": [
+    "Original Cargo.lock unavailable; patched graph is newly locked.",
+    "Archive replay does not prove deployed-binary identity."
+  ],
+  "changes": [
+    "Fastly SDK0.13.3/url2.5.9",
+    "Preserve previous zero stale-if-error on two outbound GET paths",
+    "Independent Cargo workspace and pinned build toolchain"
+  ]
+}
